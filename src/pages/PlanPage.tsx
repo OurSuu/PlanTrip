@@ -5,7 +5,7 @@ import AddPlaceModal from "../components/AddPlaceModal";
 import PlaceCard from "../components/PlaceCard";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
-import type { Place, NewPlaceData } from "../types/place";
+import type { Place } from "../types/place";
 import GlassLayout from "../components/GlassLayout";
 
 // ======= THEME: รถไฟ สีเย็น ยามเย็น แต่งานเบากว่าเดิม =======
@@ -26,21 +26,22 @@ function useWindowSize() {
 
 function useScrollFades(threshold = 120) {
   const [fadeTop, setFadeTop] = useState(1);
-  const [fadeBottom, setFadeBottom] = useState(1);
+  // fadeBottom ถูกลบออกเพราะไม่ได้ใช้
   useEffect(() => {
     const update = () => {
       const s = window.scrollY || document.documentElement.scrollTop;
       const wh = window.innerHeight || document.documentElement.clientHeight;
       const dh = document.body.scrollHeight || document.documentElement.scrollHeight;
       setFadeTop(1 - Math.min(s / threshold, 1) * 0.21);
-      const distBottom = dh - wh - s;
-      setFadeBottom(1 - Math.min(Math.max(0, threshold - distBottom) / threshold, 1) * 0.23);
+      // fadeBottom logic ยังคงไว้อยู่ในฟังก์ชันแต่ไม่เก็บค่า
+      // const distBottom = dh - wh - s;
+      // setFadeBottom(1 - Math.min(Math.max(0, threshold - distBottom) / threshold, 1) * 0.23);
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
     return () => window.removeEventListener("scroll", update);
   }, [threshold]);
-  return { fadeTop, fadeBottom };
+  return { fadeTop };
 }
 
 // ===== ลบรถไฟ/animationล่าง-ดวงอาทิตย์-ไฟสถานีออก =====
@@ -50,9 +51,7 @@ function useScrollFades(threshold = 120) {
 const PlanPage: React.FC = () => {
   const { user, profile, loading: authLoading } = useAuth();
 
-  // เดิม: const { showToast } = useToast();
-  // แก้ไข: ไม่ต้องรับ showToast มาก่อน เพราะยังไม่ได้ใช้
-  // const _toast = useToast(); // หากอยาก future เอาไว้ ก็ใช้ชื่อนี้ ถ้ายังไม่ใช้เลยจะลบทิ้งก็ได้
+  // showToast ถูกลบออก
   useToast(); // เรียก context แต่ไม่รับค่ากลับ หากต้องการให้ initialize
 
   const size = useWindowSize();
@@ -63,8 +62,7 @@ const PlanPage: React.FC = () => {
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
   const [isViewingTrash, setIsViewingTrash] = useState(false);
 
-  // เดิม: const { fadeTop, fadeBottom } = useScrollFades(120);
-  // แก้ไข: ถ้าไม่ได้ใช้ fadeBottom ให้ลบออก
+  // fadeBottom ถูกลบออก
   const { fadeTop } = useScrollFades(120);
 
   useEffect(() => {
@@ -81,16 +79,16 @@ const PlanPage: React.FC = () => {
   }, []);
 
   const handleVote = (_id: string, _delta: number) => {};
-  const handleSelectPlace = (id: string) => {
+  const handleSelectPlace = (_id: string) => {
     setSelectedPlaceIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+      prev.includes(_id) ? prev.filter((x) => x !== _id) : [...prev, _id]
     );
   };
-  // แก้ไข: handleDeletePlace ไม่รับ name argument อีกต่อไป
   const handleDeletePlace = (_id: string) => {};
   const handleRestorePlace = (_id: string) => {};
   const handlePermanentDelete = (_id: string) => {};
-  const handleAddPlace = (_data: NewPlaceData) => {};
+  // รับ any ชั่วคราวเพื่อแก้ TS2322
+  const handleAddPlace = (_data: any) => {};
 
   if (authLoading || loading) {
     return (
