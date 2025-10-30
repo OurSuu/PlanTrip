@@ -1,18 +1,19 @@
 // src/components/AddPlaceModal.tsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Variants } from 'framer-motion';
 import type { NewPlaceData } from '../types/place';
 import { useToast } from '../contexts/ToastContext';
-
-type DataWithFile = Omit<NewPlaceData, 'addedBy' | 'imageUrl'> & { imageFile: File | null };
+import { supabase } from '../supabaseClient';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
-  onAddPlace: (data: DataWithFile) => void;
+  onAddPlace?: (data: any) => void;
   onClose: () => void;
 }
 
 // Smooth backdrop with animated gradient
-const modalBgVariants = {
+const modalBgVariants: Variants = {
   initial: { opacity: 0 },
   animate: {
     opacity: 1,
@@ -25,7 +26,7 @@ const modalBgVariants = {
 };
 
 // Card entrance animates with elevation, fade, and blur pop
-const cardVariants = {
+const cardVariants: Variants = {
   initial: { opacity: 0, scale: 0.94, y: 48, filter: "blur(7px)" },
   animate: {
     opacity: 1,
@@ -33,7 +34,7 @@ const cardVariants = {
     y: 0,
     filter: "blur(0px)",
     transition: {
-      type: "spring" as const,
+      type: "spring",
       stiffness: 116,
       damping: 19,
       mass: 0.98
@@ -44,8 +45,7 @@ const cardVariants = {
     scale: 0.96,
     y: 36,
     filter: "blur(5px)",
-    // CHANGE: use a string for ease, not an array
-    transition: { duration: 0.19, ease: "easeInOut" }
+    transition: { duration: 0.19, ease: "easeInOut" as any }
   }
 };
 
@@ -61,6 +61,10 @@ const AddPlaceModal: React.FC<Props> = ({ onAddPlace, onClose }) => {
   const [cost, setCost] = useState<number | ''>('');
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const { showToast } = useToast();
+
+  const { profile } = useAuth();
+
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -78,19 +82,83 @@ const AddPlaceModal: React.FC<Props> = ({ onAddPlace, onClose }) => {
     setImagePreviewUrl(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ---- Supabase Upload & Insert logic ---- //
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+
+    // The 'cost' field should be int8, so must be integer >= 1
     const costNumber = typeof cost === 'number' ? cost : Number(cost);
-    if (!name || !costNumber || costNumber <= 0) {
+    if (!name || !costNumber || costNumber < 1 || isNaN(costNumber) || !Number.isInteger(costNumber)) {
       showToast("⚠️ กรุณาใส่ชื่อและค่าใช้จ่ายที่มากกว่า 0", 'warning');
       return;
     }
-    onAddPlace({
+    if (!profile?.id) {
+      showToast("กรุณาเข้าสู่ระบบก่อนเพิ่มสถานที่", 'error');
+      return;
+    }
+
+    setIsSaving(true);
+
+    let imageUrl: string | null = null;
+    let uploadError: string | null = null;
+
+    // 1. ถ้ามี imageFile ให้ upload ขึ้น storage ก่อน
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+      const filePath = `places/${profile.id}_${Date.now()}.${fileExt}`;
+
+      // Changed: use the new bucket name "place_images"
+      const { error: uploadErr } = await supabase.storage
+        .from('place_images')
+        .upload(filePath, imageFile, {
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        uploadError = `อัปโหลดรูปภาพล้มเหลว: ${uploadErr.message}`;
+      } else {
+        // get public URL
+        const { data } = supabase.storage.from('place_images').getPublicUrl(filePath);
+        imageUrl = data?.publicUrl || null;
+      }
+    }
+
+    if (uploadError) {
+      showToast(uploadError, 'error');
+      setIsSaving(false);
+      return;
+    }
+
+    // 2. Insert new place to supabase
+    const insertData: any = {
       name,
       description,
-      imageFile,
       cost: costNumber,
-    });
+      addedBy: profile?.id,
+      imageUrl,
+    };
+
+    const { error: insertErr } = await supabase
+      .from('places')
+      .insert([insertData]);
+
+    if (insertErr) {
+      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + insertErr.message, 'error');
+      setIsSaving(false);
+      return;
+    }
+
+    showToast('บันทึกสถานที่ใหม่สำเร็จ! 🎉', 'success');
+
+    // (optional) inform parent component:
+    onAddPlace?.(insertData);
+
+    setTimeout(() => {
+      setIsSaving(false);
+      onClose();
+    }, 380);
   };
 
   return (
@@ -194,7 +262,7 @@ const AddPlaceModal: React.FC<Props> = ({ onAddPlace, onClose }) => {
                     className="mt-2 p-1 border border-sky-200 rounded-lg flex flex-col items-center gap-1 bg-cyan-50/50"
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10, transition: { duration: 0.15, ease: "easeInOut" } }}
+                    exit={{ opacity: 0, y: 10, transition: { duration: 0.15, ease: "easeInOut" as any } }}
                     layout
                   >
                     <img
@@ -246,19 +314,23 @@ const AddPlaceModal: React.FC<Props> = ({ onAddPlace, onClose }) => {
                 style={{
                   boxShadow: "0 1.5px 9px rgba(12,158,179,0.11)"
                 }}
+                disabled={isSaving}
               >
                 ยกเลิก
               </motion.button>
               <motion.button
                 type="submit"
                 whileTap={{ scale: 0.97 }}
-                className={saveButton}
+                className={saveButton + (isSaving ? " opacity-80 cursor-not-allowed pointer-events-none" : "")}
                 style={{
                   boxShadow: "0 2px 18px rgba(50,210,241,0.13)"
                 }}
+                disabled={isSaving}
               >
                 <span className="inline-flex gap-1 items-center">
-                  <span>บันทึก</span>
+                  <span>
+                    {isSaving ? "กำลังบันทึก..." : "บันทึก"}
+                  </span>
                   <span className="ml-1 text-xl inline-block">💾</span>
                 </span>
               </motion.button>

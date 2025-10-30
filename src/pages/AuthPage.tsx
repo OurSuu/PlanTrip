@@ -112,8 +112,26 @@ const AuthPage = () => {
     setLoading(false);
   };
 
-  // ลด spec! ปรับ motion variants & style ให้เบาสุด ลื่น เร็ว
-  const cardVariants = {
+  // --- FIX: Explicitly type variants for Framer Motion to fix TS2322 errors ---
+  // Because framer-motion's "filter" property is not in standard types, declare it for variants.
+
+  type CardCustomStyle = {
+    opacity?: number;
+    scale?: number;
+    y?: number;
+    filter?: string;
+    transition?: any;
+  };
+
+  type FormCustomStyle = {
+    opacity?: number;
+    y?: number;
+    filter?: string;
+    scale?: number;
+    transition?: any;
+  };
+
+  const cardVariants: Record<string, CardCustomStyle> = {
     initial: {
       opacity: 0.99,
       scale: 0.995,
@@ -143,7 +161,7 @@ const AuthPage = () => {
     },
   };
 
-  const formVariants = {
+  const formVariants: Record<string, FormCustomStyle> = {
     initial: {
       opacity: 0.6,
       y: 2,
@@ -166,9 +184,11 @@ const AuthPage = () => {
     },
   };
 
+  // @ts-expect-error: dynamic style keys for button
   const buttonHoverTapProps = reducedMotion
     ? { transition: { duration: 0 } }
     : {
+       
         whileTap: { scale: 0.99 },
         whileHover: { scale: 1.01, boxShadow: "0 0 0 1px #63ffe275" },
       };
@@ -291,7 +311,7 @@ const AuthPage = () => {
                 autoComplete="username"
                 value={userInput}
                 onChange={e => setUserInput(e.target.value)}
-                {...buttonHoverTapProps}
+
                 style={{
                   background: isLoginView
                     ? "linear-gradient(92deg,rgba(64,126,244,0.07),rgba(12,14,32,0.03))"
@@ -312,7 +332,7 @@ const AuthPage = () => {
                 autoComplete={isLoginView ? "current-password" : "new-password"}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                {...buttonHoverTapProps}
+
                 style={{
                   background: isLoginView
                     ? "linear-gradient(90deg,rgba(60,138,255,0.05),rgba(12,14,32,0.07))"
@@ -349,7 +369,7 @@ const AuthPage = () => {
                   cursor: loading ? "wait" : "pointer",
                   transition: "all 0.08s cubic-bezier(.63,.09,.52,1.30)",
                 }}
-                {...buttonHoverTapProps}
+
               >
                 {loading
                   ? (
@@ -414,7 +434,7 @@ const AuthPage = () => {
               setPassword("");
             }}
             className={styles.toggleButton}
-            {...buttonHoverTapProps}
+
             style={{
               background: isLoginView ? loginGrad : registerGrad,
               color: isLoginView ? "#0a2838" : "#500c54",

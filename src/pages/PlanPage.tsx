@@ -13,16 +13,10 @@ const PLANPAGE_VIDEO_URL = "/videos/test2.mp4"; // ควรมีวิดี�
 
 function useScrollFades(threshold = 120) {
   const [fadeTop, setFadeTop] = useState(1);
-  // fadeBottom ถูกลบออกเพราะไม่ได้ใช้
   useEffect(() => {
     const update = () => {
       const s = window.scrollY || document.documentElement.scrollTop;
       setFadeTop(1 - Math.min(s / threshold, 1) * 0.21);
-      // fadeBottom logic ยังคงไว้อยู่ในฟังก์ชันแต่ไม่เก็บค่า
-      // const wh = window.innerHeight || document.documentElement.clientHeight;
-      // const dh = document.body.scrollHeight || document.documentElement.scrollHeight;
-      // const distBottom = dh - wh - s;
-      // setFadeBottom(1 - Math.min(Math.max(0, threshold - distBottom) / threshold, 1) * 0.23);
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
@@ -38,10 +32,7 @@ function useScrollFades(threshold = 120) {
 const PlanPage: React.FC = () => {
   const { user, profile, loading: authLoading } = useAuth();
 
-  // showToast ถูกลบออก
   useToast(); // เรียก context แต่ไม่รับค่ากลับ หากต้องการให้ initialize
-
-  // const size = useWindowSize(); // size ไม่ได้ถูกใช้ นำออก
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +40,6 @@ const PlanPage: React.FC = () => {
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
   const [isViewingTrash, setIsViewingTrash] = useState(false);
 
-  // fadeBottom ถูกลบออก
   const { fadeTop } = useScrollFades(120);
 
   useEffect(() => {
@@ -65,8 +55,9 @@ const PlanPage: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  // ======= แก้ไขเพื่อรับ param จำนวนมากพอ (TS2322) =======
-  const handleVote = (_id: string, _delta: number, ..._args: any[]) => {};
+  // ======= แก้ไขเพื่อรับ param ถูกต้องตาม prop (TS2322) =======
+  // ปรับให้ตรงกับ PlaceCard props: onVote(id: string, delta: number): void
+  const handleVote = (_id: string, _delta: number) => {};
   const handleSelectPlace = (_id: string, ..._args: any[]) => {
     setSelectedPlaceIds((prev) =>
       prev.includes(_id) ? prev.filter((x) => x !== _id) : [...prev, _id]
@@ -309,7 +300,7 @@ const PlanPage: React.FC = () => {
                       <PlaceCard
                         place={place}
                         profile={profile}
-                        onVote={handleVote}
+                        onVote={id => handleVote(id, 1)}
                         onSelect={handleSelectPlace}
                         isSelected={selectedPlaceIds.includes(place.id)}
                         onDeletePlace={handleDeletePlace}

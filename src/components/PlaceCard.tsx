@@ -1,24 +1,21 @@
 // src/components/PlaceCard.tsx
 import React, { useState, useEffect } from 'react';
-// 1. Import พิมพ์เขียวใหม่
 import type { Place, Comment } from '../types/place';
 import type { Profile } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient'; 
-// import { useAuth } from '../contexts/AuthContext';    // ลบออก เพราะไม่ได้ใช้
-import { useToast } from '../contexts/ToastContext'; // <--- เพิ่ม Import
+import { useToast } from '../contexts/ToastContext';
 
 // 2. [อัปเกรด!] Props
 interface Props {
-  place: Place;         // (Place ก้อนใหม่ ที่มี profiles ห้อย)
-  profile: Profile;     // (Profile ของ "เรา")
+  place: Place;
+  profile: Profile;
   onVote: (id: string) => void;
   onSelect: (id: string) => void;
   isSelected: boolean;
   onDeletePlace: (id: string) => void;
-  // --- [สำหรับโหมดถังขยะ] ---
-  isViewingTrash: boolean; // <--- เพิ่ม
-  onRestorePlace: (id: string) => void; // <--- เพิ่ม
-  onPermanentDelete: (id: string) => void; // <--- เพิ่ม
+  isViewingTrash: boolean;
+  onRestorePlace: (id: string) => void;
+  onPermanentDelete: (id: string) => void;
 }
 
 const PlaceCard: React.FC<Props> = ({
@@ -28,18 +25,22 @@ const PlaceCard: React.FC<Props> = ({
   onSelect,
   isSelected,
   onDeletePlace,
-  isViewingTrash, // <--- ใหม่
-  onRestorePlace, // <--- ใหม่
-  onPermanentDelete, // <--- ใหม่
+  isViewingTrash,
+  onRestorePlace,
+  onPermanentDelete,
 }) => {
-  const { showToast } = useToast(); // <--- เรียกใช้ Hook
+  const { showToast } = useToast();
 
-  // --- [อัปเกรด!] ส่วนจัดการโหวต/เลือก ---
+  // --- Validate place object (fix: do not render if missing required fields) ---
+  // ถ้า place ไม่มี id, name หรือ กรณี query join แล้ว profiles/addBy เป็น null
+  if (!place || !place.id || !place.name) {
+    // ไม่แสดง Card ถ้าไม่มีข้อมูลที่จำเป็น
+    return null;
+  }
+
   const voteCount = place.voters?.length || 0;
-  // เช็กด้วย profile.id (uuid) แทน nickname
   const hasVoted = place.voters?.includes(profile.id);
 
-  // ปุ่ม style (เติมของดีฟอลต์)
   const voteButtonClass = hasVoted
     ? "px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
     : "px-4 py-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors";
@@ -47,19 +48,16 @@ const PlaceCard: React.FC<Props> = ({
     ? "px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
     : "px-4 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors";
 
-  // --- [อัปเกรด!] ส่วนคอมเมนต์ ---
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
-  // ----------- [ใหม่] Modal สำหรับกู้คืน ----------- 
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const handleConfirmRestore = () => {
     onRestorePlace(place.id);
     setShowRestoreModal(false);
   };
-  // -----------------------------------------------
 
   const fetchComments = async () => {
     setLoadingComments(true);
@@ -94,16 +92,14 @@ const PlaceCard: React.FC<Props> = ({
 
     if (error) {
       console.error('Error sending comment:', error);
-      showToast("🚨 ส่งคอมเมนต์ไม่สำเร็จ", 'error'); // แจ้ง Error
+      showToast("🚨 ส่งคอมเมนต์ไม่สำเร็จ", 'error');
     } else {
       setNewComment('');
-      showToast("✅ ส่งคอมเมนต์สำเร็จ", 'success'); // แจ้งสำเร็จ
-      // Realtime (ด้านล่าง) จะอัปเดต UI ให้
+      showToast("✅ ส่งคอมเมนต์สำเร็จ", 'success');
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    // ใช้ window.confirm ชั่วคราว (ถ้าต้องการ UI ต้องปรับปรุงโค้ดอย่างมาก)
     if (window.confirm('คุณแน่ใจนะว่าจะลบคอมเมนต์นี้?')) { 
       const { error } = await supabase
         .from('comments')
@@ -112,12 +108,12 @@ const PlaceCard: React.FC<Props> = ({
 
       if (error) {
         console.error('Error deleting comment:', error);
-        showToast("🚨 ลบคอมเมนต์ไม่สำเร็จ", 'error'); // แจ้ง Error
+        showToast("🚨 ลบคอมเมนต์ไม่สำเร็จ", 'error');
       } else {
         setComments(currentComments =>
           currentComments.filter(comment => comment.id !== commentId)
         );
-        showToast("🗑️ ลบคอมเมนต์สำเร็จ", 'success'); // แจ้งสำเร็จ
+        showToast("🗑️ ลบคอมเมนต์สำเร็จ", 'success');
       }
     }
   };
@@ -148,21 +144,17 @@ const PlaceCard: React.FC<Props> = ({
     };
   }, [showComments, place.id]);
 
-  // const isOwner = place.addedBy === profile.id; // ลบออก เพราะไม่ได้ถูกใช้งาน
-
-  // ตรวจและแสดงชื่อและรูปโปรไฟล์ของเจ้าของ Card
+  // --- ป้องกัน null/undefined owner profile หรือ addedBy ---
   let ownerName = '';
   let ownerAvatar = '';
-  // *** แก้ไขการตรวจสอบ: ใช้ place.addedBy แทน place.profiles ***
-  if (place.addedBy && typeof place.addedBy === 'object') {
-    // ตรวจสอบว่า place.addedBy มีข้อมูลจริงหรือไม่ (ถ้าถูกดึงมา)
-    const creatorProfile = place.addedBy as { username: string, avatar_url: string | null };
-
-    ownerName = creatorProfile.username
-      ? String(creatorProfile.username)
-      : 'ไม่ทราบชื่อ';
-
-    ownerAvatar = creatorProfile.avatar_url && typeof creatorProfile.avatar_url === 'string'
+  if (
+    place.addedBy &&
+    typeof place.addedBy === 'object' &&
+    (place.addedBy as any)?.username
+  ) {
+    const creatorProfile = place.addedBy as { username: string; avatar_url: string | null };
+    ownerName = String(creatorProfile.username);
+    ownerAvatar = (creatorProfile.avatar_url && typeof creatorProfile.avatar_url === 'string')
       ? creatorProfile.avatar_url
       : 'https://i.imgur.com/G5iE1G3.png';
   } else {
@@ -211,26 +203,23 @@ const PlaceCard: React.FC<Props> = ({
         <h3 className="text-lg font-bold drop-shadow-sm text-black/80 dark:text-white/90">{place.name}</h3>
         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 h-10 overflow-hidden">{place.description}</p>
         <p className="font-semibold text-lg mt-2 text-indigo-700 dark:text-indigo-400 drop-shadow">
-          ~{place.cost.toLocaleString()} บาท
+          {typeof place.cost === 'number' ? <>~{place.cost.toLocaleString()} บาท</> : null}
         </p>
         <div className="flex justify-between items-center mt-4">
-          {/* [อัปเกรด]: แสดงปุ่มตามโหมดถังขยะ */}
           {isViewingTrash ? (
-            // 🗑️ โหมดถังขยะ: แสดงปุ่มกู้คืนและลบถาวร
             <>
               <button
-                onClick={() => setShowRestoreModal(true)} // <--- ใหม่: เปิด Modal
+                onClick={() => setShowRestoreModal(true)}
                 className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors shadow-md focus:ring-2 focus:ring-green-200"
               >
                 ♻️ กู้คืน
               </button>
               <button
-                onClick={() => onPermanentDelete(place.id)} // <--- ปุ่มลบถาวรใหม่
+                onClick={() => onPermanentDelete(place.id)}
                 className="px-4 py-2 bg-red-800 text-white rounded-full hover:bg-red-900 transition-colors shadow-md focus:ring-2 focus:ring-red-300"
               >
                 ลบถาวร 💀
               </button>
-              {/* Modal กู้คืน */}
               {showRestoreModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
                   <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg max-w-xs w-full">
@@ -255,7 +244,6 @@ const PlaceCard: React.FC<Props> = ({
               )}
             </>
           ) : (
-            // โหมดปกติ: แสดงปุ่มโหวตและเลือก (โค้ดเดิม)
             <>
               <button
                 onClick={() => onVote(place.id)}
@@ -272,7 +260,8 @@ const PlaceCard: React.FC<Props> = ({
             </>
           )}
         </div>
-        {/* แสดงชื่อเเละรูปผู้สร้าง Card โดยไม่บัค */}
+
+        {/* แสดงชื่อและรูปผู้สร้าง Card แบบป้องกัน null */}
         <div className="text-xs text-gray-400 mt-3 block text-right flex justify-end items-center gap-1.5">
           <span className="text-gray-400 truncate max-w-[88px]" title={ownerName}>
             โดย: {ownerName}
@@ -307,10 +296,8 @@ const PlaceCard: React.FC<Props> = ({
 
                 let commentAuthorName = '';
                 let commentAuthorAvatar = '';
-                if (authorProfile && typeof authorProfile === 'object') {
-                  commentAuthorName = authorProfile.username
-                    ? String(authorProfile.username)
-                    : '...';
+                if (authorProfile && typeof authorProfile === 'object' && authorProfile.username) {
+                  commentAuthorName = String(authorProfile.username);
                   commentAuthorAvatar = authorProfile.avatar_url && typeof authorProfile.avatar_url === 'string'
                     ? authorProfile.avatar_url
                     : 'https://i.imgur.com/G5iE1G3.png';
