@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import AddPlaceModal from "../components/AddPlaceModal";
@@ -52,12 +52,6 @@ const PlanPage: React.FC = () => {
   const { showToast } = useToast();
 
   const size = useWindowSize();
-  const density = useMemo(() => {
-    if (size.w < 420) return 0.23;
-    if (size.w < 768) return 0.4;
-    if (size.w < 1024) return 0.7;
-    return 1;
-  }, [size.w]);
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,16 +74,17 @@ const PlanPage: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  const handleVote = (id: string, delta: number) => {};
+  const handleVote = (_id: string, _delta: number) => {};
   const handleSelectPlace = (id: string) => {
     setSelectedPlaceIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
-  const handleDeletePlace = (id: string, name?: string) => {};
-  const handleRestorePlace = (id: string) => {};
-  const handlePermanentDelete = (id: string) => {};
-  const handleAddPlace = (data: NewPlaceData) => {};
+  // แก้ไข: handleDeletePlace ไม่รับ name argument อีกต่อไป
+  const handleDeletePlace = (_id: string) => {};
+  const handleRestorePlace = (_id: string) => {};
+  const handlePermanentDelete = (_id: string) => {};
+  const handleAddPlace = (_data: NewPlaceData) => {};
 
   if (authLoading || loading) {
     return (
@@ -325,7 +320,7 @@ const PlanPage: React.FC = () => {
                         onVote={handleVote}
                         onSelect={handleSelectPlace}
                         isSelected={selectedPlaceIds.includes(place.id)}
-                        onDeletePlace={() => handleDeletePlace(place.id, place.name)}
+                        onDeletePlace={() => handleDeletePlace(place.id)}
                         isViewingTrash={isViewingTrash}
                         onRestorePlace={handleRestorePlace}
                         onPermanentDelete={handlePermanentDelete}
