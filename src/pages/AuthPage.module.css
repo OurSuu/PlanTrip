@@ -1,0 +1,135 @@
+.authContainer {
+  /* 💡 [FIX] ใช้ vh แทน dvh เพื่อความเข้ากันได้ และ set height ให้เต็มจอ */
+  width: 100vw;
+  height: 100vh; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden; 
+  background-color: #0b0d1a; /* Dark base color */
+  z-index: 0; /* ตรวจสอบให้แน่ใจว่า Container หลักมี z-index อย่างน้อย 0 */
+}
+
+/* ✅ [NEW] Style สำหรับ Video Background */
+.videoBackground {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -2; /* 💡 [FIX] ต้องเป็นค่าที่ต่ำที่สุด */
+  object-fit: cover; 
+  pointer-events: none; 
+  filter: brightness(0.6) contrast(1.1) saturate(1.2); 
+  opacity: 0.9;
+  transition: opacity 0.5s;
+}
+
+.authCard {
+  width: 90%; 
+  max-width: 380px; /* ลดขนาดลงเพื่อความ Minimal */
+  padding: 2.5rem; 
+  z-index: 10; /* 💡 [FIX] ต้องแน่ใจว่า Card มี z-index ที่สูงกว่า 0 */
+  background: rgba(18, 18, 30, 0.85); /* Dark Base + โปร่งแสง */
+  backdrop-filter: blur(15px); /* เบลอหนักขึ้นเพื่อความ Minimal */
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition: all 0.5s;
+}
+
+.title {
+  font-size: 2.5rem; 
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.05em; 
+  color: #fff; /* สีขาวหลัก */
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+.formHeading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+    margin-bottom: 0.5rem;
+}
+
+.authForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem; 
+}
+
+.inputField {
+  background: rgba(30, 30, 50, 0.9); 
+  border: 1.5px solid rgba(60, 110, 255, 0.3); 
+  border-radius: 9px; 
+  padding: 0.9rem 1.1rem; 
+  font-size: 1rem;
+  color: #e0e7ff;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.inputField:focus {
+  border-color: #6a8cff; 
+  background: rgba(30, 30, 50, 0.95);
+  box-shadow: 0 0 0 3px rgba(106, 140, 255, 0.2);
+}
+.inputField::placeholder {
+  color: #707a8f; 
+}
+
+.loginButton {
+  /* 💡 [Minimal Adjust]: ใช้สี Gradient ที่นุ่มนวล */
+  background: linear-gradient(135deg, #6a8cff 0%, #996aff 100%); 
+  color: white;
+  border: none;
+  border-radius: 10px; 
+  padding: 0.95rem 1.2rem; 
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(106, 140, 255, 0.3); 
+  letter-spacing: 0.02em;
+}
+.loginButton:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(106, 140, 255, 0.4);
+  transform: translateY(-1px); /* ลดการเคลื่อนที่ */
+}
+.loginButton:disabled {
+  background: linear-gradient(135deg, #4a5e99 0%, #6d4a99 100%); 
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.toggleButton {
+  background: none;
+  border: none;
+  color: #a0a7b8; 
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  text-decoration: none; /* ✅ ไม่เอา underline */
+  transition: color 0.3s ease;
+  font-weight: 600;
+}
+.toggleButton:hover {
+  color: #e0e7ff; 
+}
+
+.errorMessage {
+  font-size: 0.9rem;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.3s;
+}

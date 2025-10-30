@@ -1,0 +1,41 @@
+{
+  "name": "plantrip",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "tailwind:init": "tailwindcss init -p"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.6",
+    "@react-three/fiber": "^9.4.0",
+    "@supabase/supabase-js": "^2.77.0",
+    "framer-motion": "^12.23.24",
+    "lamina": "^1.2.2",
+    "maath": "^0.10.8",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.5",
+    "three": "^0.160.0",
+    "uuid": "^13.0.0",
+    "vanta": "^0.5.24"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.3.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.3",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.12"
+  }
+}
