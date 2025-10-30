@@ -128,7 +128,7 @@ const AuthPage = () => {
       transition: {
         type: "tween",
         duration: 0.09,
-        ease: "easeInOut"
+        ease: [0.4, 0, 0.2, 1]
       },
     },
     exit: {
@@ -177,13 +177,13 @@ const AuthPage = () => {
   const loginGrad = "linear-gradient(114deg,#7bddfb 8%,#3fbbff 90%)";
   const registerGrad =
     "linear-gradient(92deg,#ea7df5 8%, #c148e7 62%, #9b8cfb 98%)";
-  const bgBlurColor = isLoginView =>
+  const bgBlurColor = (isLoginView: boolean) =>
     isLoginView
       ? "rgba(30,46,78,0.68)"
       : "rgba(120,30,120,0.48)";
-  const cardBorder = isLoginView =>
+  const cardBorder = (isLoginView: boolean) =>
     isLoginView ? "1px solid #68e2fa66" : "1px solid #ec91f653";
-  const cardShadow = isLoginView =>
+  const cardShadow = (isLoginView: boolean) =>
     isLoginView
       ? "0 2px 8px 0 #3ffdff10"
       : "0 2px 12px 0 #ea7df50d";
@@ -235,7 +235,7 @@ const AuthPage = () => {
               background: isLoginView ? loginGrad : registerGrad,
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
-              textFillColor: "transparent",
+              // Removed textFillColor, it's not a valid prop; instead, WebkitTextFillColor above suffices.
               fontWeight: 800,
               letterSpacing: "-0.02em",
               textShadow: headingShadow,

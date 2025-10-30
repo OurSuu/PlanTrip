@@ -11,19 +11,6 @@ import GlassLayout from "../components/GlassLayout";
 // ======= THEME: รถไฟ สีเย็น ยามเย็น แต่งานเบากว่าเดิม =======
 const PLANPAGE_VIDEO_URL = "/videos/test2.mp4"; // ควรมีวิดีโอบรรยากาศสถานีหรือท้องฟ้ายามเย็น
 
-function useWindowSize() {
-  const [size, setSize] = useState({ w: 1200, h: 800 });
-  useEffect(() => {
-    function onResize() {
-      setSize({ w: window.innerWidth, h: window.innerHeight });
-    }
-    onResize();
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  return size;
-}
-
 function useScrollFades(threshold = 120) {
   const [fadeTop, setFadeTop] = useState(1);
   // fadeBottom ถูกลบออกเพราะไม่ได้ใช้
@@ -78,15 +65,16 @@ const PlanPage: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  const handleVote = (_id: string, _delta: number) => {};
-  const handleSelectPlace = (_id: string) => {
+  // ======= แก้ไขเพื่อรับ param จำนวนมากพอ (TS2322) =======
+  const handleVote = (_id: string, _delta: number, ..._args: any[]) => {};
+  const handleSelectPlace = (_id: string, ..._args: any[]) => {
     setSelectedPlaceIds((prev) =>
       prev.includes(_id) ? prev.filter((x) => x !== _id) : [...prev, _id]
     );
   };
-  const handleDeletePlace = (_id: string) => {};
-  const handleRestorePlace = (_id: string) => {};
-  const handlePermanentDelete = (_id: string) => {};
+  const handleDeletePlace = (_id: string, ..._args: any[]) => {};
+  const handleRestorePlace = (_id: string, ..._args: any[]) => {};
+  const handlePermanentDelete = (_id: string, ..._args: any[]) => {};
   // รับ any ชั่วคราวเพื่อแก้ TS2322
   const handleAddPlace = (_data: any) => {};
 
@@ -324,7 +312,7 @@ const PlanPage: React.FC = () => {
                         onVote={handleVote}
                         onSelect={handleSelectPlace}
                         isSelected={selectedPlaceIds.includes(place.id)}
-                        onDeletePlace={() => handleDeletePlace(place.id)}
+                        onDeletePlace={handleDeletePlace}
                         isViewingTrash={isViewingTrash}
                         onRestorePlace={handleRestorePlace}
                         onPermanentDelete={handlePermanentDelete}
