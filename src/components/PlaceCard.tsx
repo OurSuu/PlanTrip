@@ -245,6 +245,7 @@ const PlaceCard: React.FC<Props> = ({
             </>
           ) : (
             <>
+              {/* [JSX Button Vote] */}
               <button
                 onClick={() => onVote(place.id)}
                 className={`${voteButtonClass} shadow-md focus:ring-2 focus:ring-red-200`}

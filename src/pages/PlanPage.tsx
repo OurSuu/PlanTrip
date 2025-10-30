@@ -1,3 +1,5 @@
+// ต้อง import { supabase } from '../supabaseClient'; ก่อน
+
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
@@ -10,6 +12,9 @@ import GlassLayout from "../components/GlassLayout";
 
 // ======= THEME: รถไฟ สีเย็น ยามเย็น แต่งานเบากว่าเดิม =======
 const PLANPAGE_VIDEO_URL = "/videos/test2.mp4"; // ควรมีวิดีโอบรรยากาศสถานีหรือท้องฟ้ายามเย็น
+
+// === เตรียม Supabase Client ===
+import { supabase } from "../supabaseClient"; // <-- ปรับ path ให้ตรงกับที่โปรเจคใช้
 
 function useScrollFades(threshold = 120) {
   const [fadeTop, setFadeTop] = useState(1);
@@ -44,20 +49,68 @@ const PlanPage: React.FC = () => {
 
   useEffect(() => {
     let active = true;
+
     async function fetchData() {
       setLoading(true);
-      await new Promise((r) => setTimeout(r, 500));
       if (!active) return;
-      setPlaces([]); // Sample: Replace with API
+
+      // [สำคัญ!] ดึงข้อมูลจาก Supabase พร้อม Join "addedBy"
+      // === เปลี่ยน places -> place (table name) ===
+      const { data, error } = await supabase
+        .from('place')
+        .select(`
+          *,
+          addedBy:profiles!place_addedBy_fkey (id, username, avatar_url)
+        `)
+        .eq('is_deleted', false) // ดึงเฉพาะ Card ที่ไม่ได้อยู่ในถังขยะ
+        .order('created_at', { ascending: false }); // เรียงลำดับล่าสุดขึ้นก่อน
+
+      if (error) {
+        console.error('Error fetching places:', error);
+      } else {
+        // [สำคัญ] ต้องใช้ Type Assertion ให้ถูกต้อง
+        setPlaces((data as Place[]) || []);
+      }
       setLoading(false);
     }
+
     fetchData();
+
     return () => { active = false; };
   }, []);
 
-  // ======= แก้ไขเพื่อรับ param ถูกต้องตาม prop (TS2322) =======
-  // ปรับให้ตรงกับ PlaceCard props: onVote(id: string, delta: number): void
-  const handleVote = (_id: string, _delta: number) => {};
+  // ======= handleVote: ปรับเป็น async รับ id แล้ว toggle vote (push/pop ใน voters) พร้อม sync supabase =======
+  const handleVote = async (id: string) => {
+    if (!user?.id) return;
+
+    const placeToUpdate = places.find(p => p.id === id);
+    if (!placeToUpdate) return;
+
+    const hasVoted = placeToUpdate.voters?.includes(user.id);
+    const newVoters = hasVoted
+      ? placeToUpdate.voters.filter(voterId => voterId !== user.id) // Unvote
+      : [...(placeToUpdate.voters || []), user.id]; // Vote
+
+    // อัปเดตใน Supabase
+    // === เปลี่ยน places -> place (table name) ===
+    const { error } = await supabase
+      .from('place')
+      .update({ voters: newVoters })
+      .eq('id', id);
+
+    if (error) {
+      console.error("Vote failed:", error);
+      return;
+    }
+
+    // อัปเดตใน State
+    setPlaces(prevPlaces =>
+      prevPlaces.map(p =>
+        p.id === id ? { ...p, voters: newVoters } : p
+      )
+    );
+  };
+
   const handleSelectPlace = (_id: string, ..._args: any[]) => {
     setSelectedPlaceIds((prev) =>
       prev.includes(_id) ? prev.filter((x) => x !== _id) : [...prev, _id]
@@ -66,8 +119,20 @@ const PlanPage: React.FC = () => {
   const handleDeletePlace = (_id: string, ..._args: any[]) => {};
   const handleRestorePlace = (_id: string, ..._args: any[]) => {};
   const handlePermanentDelete = (_id: string, ..._args: any[]) => {};
-  // รับ any ชั่วคราวเพื่อแก้ TS2322
-  const handleAddPlace = (_data: any) => {};
+
+  // ======= handleAddPlace: รับข้อมูลใหม่ (ที่มี id แล้ว) ยัด profile และ voters field =======
+  const handleAddPlace = (newPlaceData: any) => { 
+    if (newPlaceData && profile) {
+      // รวมข้อมูล Profile ของผู้ใช้ และเริ่มต้น voters ว่างเปล่า
+      const placeWithProfile: Place = { 
+        ...newPlaceData, 
+        addedBy: profile, // ใช้ Profile ของผู้ใช้ปัจจุบัน
+        voters: [], // เริ่มต้นไม่มีคนโหวต
+        // ... เพิ่ม field ที่ Place Card ต้องการ (สามารถเพิ่ม field อื่นๆ ตามที่ฟอร์มให้มา)
+      };
+      setPlaces(prev => [placeWithProfile, ...prev]); 
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -113,8 +178,15 @@ const PlanPage: React.FC = () => {
     );
   }
 
+  // --- ปรับ grid ให้ responsive ยิ่งขึ้น & ลดขนาด min/max card ---
+  // (เดิม minmax 285px)
+  // ปรับ: base: 1 col (เต็ม), xs (min 340): 2 col, sm (min 500): 2 col, md (min 700): 3 col, lg (min 980): 4 col
+  // เเละจำกัด maxWidth ของ card
+
   const gridStyle: React.CSSProperties = {
-    gridTemplateColumns: "repeat(auto-fit, minmax(285px, 1fr))",
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", // งอได้เยอะขึ้นและเหลือขนาดไม่ใหญ่
+    gap: "1.5rem", // tailwind: gap-6/8
     perspective: 900,
   };
 
@@ -132,14 +204,6 @@ const PlanPage: React.FC = () => {
             opacity: 0.88,
           }}
         />
-        {/* <div
-          className="pointer-events-none fixed bottom-0 left-0 w-full h-6 z-[13] blur-[1.5px]"
-          style={{
-            background:
-              "linear-gradient(90deg, #c7b2ff05 30%, #ffe7c7 80%, #b599e402 85%)",
-            opacity: .75,
-          }}
-        /> */}
         <div
           style={{
             pointerEvents: "none",
@@ -154,29 +218,13 @@ const PlanPage: React.FC = () => {
             transition: "opacity 0.3s",
           }}
         />
-        {/* <div
-          style={{
-            pointerEvents: "none",
-            position: "fixed",
-            left: 0,
-            right: 0,
-            height: 80,
-            bottom: 0,
-            zIndex: 12,
-            opacity: 1 - fadeBottom,
-            background: "linear-gradient(0deg, #60485e 0%, transparent 86%)",
-            transition: "opacity 0.3s",
-          }}
-        /> */}
 
         {/* Navbar */}
         <Navbar profile={profile} />
 
-        {/* animation ด้านล่าง, รถไฟ, ดวงอาทิตย์, โคมไฟสถานีถูกลบออก */}
-
         <AnimatePresence>
           <motion.section
-            className="relative px-2 sm:px-8 lg:px-16 pt-24 pb-36 flex flex-col items-center max-w-[105rem] mx-auto"
+            className="relative px-2 sm:px-4 md:px-8 lg:px-12 pt-24 pb-36 flex flex-col items-center max-w-[105rem] mx-auto"
             initial={{ opacity: 0.87 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0.81 }}
@@ -265,7 +313,7 @@ const PlanPage: React.FC = () => {
 
             {/* Cards grid */}
             <div
-              className="grid gap-8 md:gap-9 lg:gap-10 w-full max-w-7xl z-20"
+              className="w-full max-w-7xl z-20"
               style={gridStyle}
             >
               {places.length > 0 ? (
@@ -274,6 +322,7 @@ const PlanPage: React.FC = () => {
                   return (
                     <motion.div
                       key={place.id}
+                      className="w-full"
                       initial={{ opacity: 0.5, y: 16 }}
                       animate={{
                         opacity: 1,
@@ -282,25 +331,28 @@ const PlanPage: React.FC = () => {
                           "0 3px 15px rgba(189,178,255,0.13),0 1.5px 4px 0 #e6af4d22",
                       }}
                       whileHover={{
-                        scale: 1.016,
+                        scale: 1.012,
                         z: 30,
                         boxShadow:
                           "0 11px 28px 0px #efd79f38,0 2px 6px 0 #c1adff10",
                         borderColor: "#efd299"
                       }}
-                      transition={{ duration: 0.28, delay: idx * 0.02 }}
-                      viewport={{ once: false, amount: 0.17 }}
+                      transition={{ duration: 0.22, delay: idx * 0.017 }}
+                      viewport={{ once: false, amount: 0.15 }}
                       style={{
                         transformStyle: "preserve-3d",
                         willChange: "transform,box-shadow,border-color",
-                        borderRadius: 18,
-                        border: "1.5px solid #fff6"
+                        borderRadius: 15,
+                        border: "1.2px solid #fff6",
+                        maxWidth: 340,   // ** ปรับ card ให้ไม่เกิน 340px **
+                        width: "100%",
+                        margin: "0 auto"
                       }}
                     >
                       <PlaceCard
                         place={place}
                         profile={profile}
-                        onVote={id => handleVote(id, 1)}
+                        onVote={handleVote}
                         onSelect={handleSelectPlace}
                         isSelected={selectedPlaceIds.includes(place.id)}
                         onDeletePlace={handleDeletePlace}
@@ -350,22 +402,6 @@ const PlanPage: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Decorative arc = เปลี่ยนเป็น rail เงาด้านล่าง */}
-        {/* <div className="pointer-events-none fixed left-1/2 -translate-x-1/2 bottom-[-45px] z-[11]" style={{
-          width: "95vw",
-          maxWidth: 1430,
-          height: 90,
-          filter: "blur(5px)",
-          opacity: 0.28,
-        }}>
-          <svg width="100%" height="100%" viewBox="0 0 1430 90" fill="none">
-            <rect x="0" y="60" width="1430" height="8" rx="3" fill="#73559e" />
-            <rect x="80" y="75" width="1300" height="2.5" rx="1.5" fill="#ffd594" />
-            <ellipse cx="715" cy="82" rx="700" ry="6" fill="#deb486b6" opacity="0.12" />
-            <ellipse cx="700" cy="89" rx="600" ry="2.5" fill="#fffbe9" opacity="0.08" />
-          </svg>
-        </div> */}
       </div>
     </GlassLayout>
   );
