@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import type { NewPlaceData } from '../types/place';
 import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
