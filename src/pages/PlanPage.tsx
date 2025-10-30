@@ -49,7 +49,11 @@ function useScrollFades(threshold = 120) {
 
 const PlanPage: React.FC = () => {
   const { user, profile, loading: authLoading } = useAuth();
-  const { showToast } = useToast();
+
+  // เดิม: const { showToast } = useToast();
+  // แก้ไข: ไม่ต้องรับ showToast มาก่อน เพราะยังไม่ได้ใช้
+  // const _toast = useToast(); // หากอยาก future เอาไว้ ก็ใช้ชื่อนี้ ถ้ายังไม่ใช้เลยจะลบทิ้งก็ได้
+  useToast(); // เรียก context แต่ไม่รับค่ากลับ หากต้องการให้ initialize
 
   const size = useWindowSize();
 
@@ -59,7 +63,9 @@ const PlanPage: React.FC = () => {
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
   const [isViewingTrash, setIsViewingTrash] = useState(false);
 
-  const { fadeTop, fadeBottom } = useScrollFades(120);
+  // เดิม: const { fadeTop, fadeBottom } = useScrollFades(120);
+  // แก้ไข: ถ้าไม่ได้ใช้ fadeBottom ให้ลบออก
+  const { fadeTop } = useScrollFades(120);
 
   useEffect(() => {
     let active = true;
