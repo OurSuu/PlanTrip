@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import type { Place, Comment } from '../types/place';
 import type { Profile } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient'; 
-import { useAuth } from '../contexts/AuthContext'; 
+// import { useAuth } from '../contexts/AuthContext';    // ลบออก เพราะไม่ได้ใช้
 import { useToast } from '../contexts/ToastContext'; // <--- เพิ่ม Import
 
 // 2. [อัปเกรด!] Props
@@ -148,8 +148,7 @@ const PlaceCard: React.FC<Props> = ({
     };
   }, [showComments, place.id]);
 
-  // ตรวจสอบว่าเราเป็นเจ้าของหรือไม่
-  const isOwner = place.addedBy === profile.id;
+  // const isOwner = place.addedBy === profile.id; // ลบออก เพราะไม่ได้ถูกใช้งาน
 
   // ตรวจและแสดงชื่อและรูปโปรไฟล์ของเจ้าของ Card
   let ownerName = '';

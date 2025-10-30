@@ -28,15 +28,24 @@ const modalBgVariants = {
 const cardVariants = {
   initial: { opacity: 0, scale: 0.94, y: 48, filter: "blur(7px)" },
   animate: {
-    opacity: 1, scale: 1, y: 0, filter: "blur(0px)",
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: "blur(0px)",
     transition: {
-      type: "spring",
-      stiffness: 116, damping: 19, mass: 0.98
+      type: "spring" as const,
+      stiffness: 116,
+      damping: 19,
+      mass: 0.98
     }
   },
   exit: {
-    opacity: 0, scale: 0.96, y: 36, filter: "blur(5px)",
-    transition: { duration: 0.19, ease: "easeIn" }
+    opacity: 0,
+    scale: 0.96,
+    y: 36,
+    filter: "blur(5px)",
+    // CHANGE: use a string for ease, not an array
+    transition: { duration: 0.19, ease: "easeInOut" }
   }
 };
 
@@ -185,7 +194,7 @@ const AddPlaceModal: React.FC<Props> = ({ onAddPlace, onClose }) => {
                     className="mt-2 p-1 border border-sky-200 rounded-lg flex flex-col items-center gap-1 bg-cyan-50/50"
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10, transition: { duration: 0.15 } }}
+                    exit={{ opacity: 0, y: 10, transition: { duration: 0.15, ease: "easeInOut" } }}
                     layout
                   >
                     <img

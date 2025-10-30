@@ -30,10 +30,10 @@ function useScrollFades(threshold = 120) {
   useEffect(() => {
     const update = () => {
       const s = window.scrollY || document.documentElement.scrollTop;
-      const wh = window.innerHeight || document.documentElement.clientHeight;
-      const dh = document.body.scrollHeight || document.documentElement.scrollHeight;
       setFadeTop(1 - Math.min(s / threshold, 1) * 0.21);
       // fadeBottom logic ยังคงไว้อยู่ในฟังก์ชันแต่ไม่เก็บค่า
+      // const wh = window.innerHeight || document.documentElement.clientHeight;
+      // const dh = document.body.scrollHeight || document.documentElement.scrollHeight;
       // const distBottom = dh - wh - s;
       // setFadeBottom(1 - Math.min(Math.max(0, threshold - distBottom) / threshold, 1) * 0.23);
     };
@@ -54,7 +54,7 @@ const PlanPage: React.FC = () => {
   // showToast ถูกลบออก
   useToast(); // เรียก context แต่ไม่รับค่ากลับ หากต้องการให้ initialize
 
-  const size = useWindowSize();
+  // const size = useWindowSize(); // size ไม่ได้ถูกใช้ นำออก
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);

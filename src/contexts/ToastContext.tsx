@@ -1,6 +1,7 @@
 // src/contexts/ToastContext.tsx
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // 1. กำหนดประเภท
@@ -26,7 +27,8 @@ export const useToast = () => {
 };
 
 // 3. Component Toast
-const ToastNotification: React.FC<{ toast: Toast }> = ({ toast }) => {
+// เพิ่มรองรับ style prop เฉพาะสำหรับ ToastNotification เพื่อตำแหน่งแบบ custom
+const ToastNotification: React.FC<{ toast: Toast; customStyle?: React.CSSProperties }> = ({ toast, customStyle }) => {
   const baseClass = "fixed right-4 bottom-4 z-[200] p-4 rounded-xl shadow-2xl backdrop-blur-md transition-all";
   let colorClass = "";
   let icon = "";
@@ -53,6 +55,7 @@ const ToastNotification: React.FC<{ toast: Toast }> = ({ toast }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
       className={`${baseClass} ${colorClass} flex items-center gap-3 text-white font-semibold min-w-[280px]`}
+      style={customStyle}
     >
       <span className="text-xl">{icon}</span>
       {toast.message}
@@ -93,7 +96,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
              <ToastNotification 
                 key={toast.id} 
                 toast={toast} 
-                style={{ bottom: `${4 + index * 5}rem` }} // จัดตำแหน่งตาม index
+                customStyle={{ bottom: `${4 + index * 5}rem` }} // จัดตำแหน่งตาม index
              />
           ))}
         </AnimatePresence>

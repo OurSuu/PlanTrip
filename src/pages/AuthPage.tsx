@@ -126,9 +126,9 @@ const AuthPage = () => {
       y: 0,
       filter: "blur(0px)",
       transition: {
-        type: "tween" as const,
+        type: "tween",
         duration: 0.09,
-        ease: [0.62, 0, 0.88, 1.01],
+        ease: "easeInOut"
       },
     },
     exit: {
@@ -138,7 +138,7 @@ const AuthPage = () => {
       filter: "blur(0.6px)",
       transition: {
         duration: 0.07,
-        ease: [0.72, 0, 0.98, 1.0],
+        ease: "easeIn"
       },
     },
   };
@@ -155,14 +155,14 @@ const AuthPage = () => {
       y: 0,
       filter: "blur(0px)",
       scale: 1.0,
-      transition: { duration: 0.07, delay: 0.005, ease: [0.67, 0, 0.37, 1.01] },
+      transition: { duration: 0.07, delay: 0.005, ease: "easeOut" },
     },
     exit: {
       opacity: 0,
       y: -2,
       filter: "blur(0.5px)",
       scale: 0.999,
-      transition: { duration: 0.03, ease: [0.81, 0.16, 0.53, 1.02] },
+      transition: { duration: 0.03, ease: "easeIn" },
     },
   };
 
