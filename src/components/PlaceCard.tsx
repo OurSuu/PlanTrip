@@ -1,23 +1,18 @@
 // src/components/PlaceCard.tsx
 import React from 'react';
 import type { Place } from '../types/place';
-import type { Profile } from '../contexts/AuthContext';
 
 // ปรับ Interface Props (ไม่มี logic/props ปุ่ม Vote/Trash/Comment อีก)
 interface Props {
   place: Place;
-  profile: Profile;
   onOpenDetails: (id: string) => void; // <-- Prop เปิด Modal
   isSelected: boolean;
-  isViewingTrash: boolean;
 }
 
 const PlaceCard: React.FC<Props> = ({
   place,
-  profile,
   onOpenDetails,
   isSelected,
-  isViewingTrash,
 }) => {
   // Validate place object
   if (!place || !place.id || !place.name) {

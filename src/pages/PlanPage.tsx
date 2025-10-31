@@ -91,8 +91,7 @@ const PlanPage: React.FC = () => {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'place' },
-        (payload) => {
-          // console.log('Change received!', payload);
+        () => {
           fetchData();
         }
       )
@@ -134,11 +133,7 @@ const PlanPage: React.FC = () => {
     );
   };
 
-  const handleSelectPlace = (_id: string, ..._args: any[]) => {
-    setSelectedPlaceIds((prev) =>
-      prev.includes(_id) ? prev.filter((x) => x !== _id) : [...prev, _id]
-    );
-  };
+  // ลบ handleSelectPlace เพราะไม่ได้ใช้งาน
   const handleDeletePlace = (_id: string, ..._args: any[]) => {};
   const handleRestorePlace = (_id: string, ..._args: any[]) => {};
   const handlePermanentDelete = (_id: string, ..._args: any[]) => {};

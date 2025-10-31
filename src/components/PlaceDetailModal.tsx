@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../contexts/ToastContext';
-import { useAuth, type Profile } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import type { Place, Comment } from '../types/place'; 
 
 interface Props {
   place: Place;
-  profile: Profile;
   onClose: () => void;
   // Prop Actions จาก PlanPage
   onVote: (id: string) => void;
@@ -26,7 +25,7 @@ const modalBgVariants = {
 };
 
 const PlaceDetailModal: React.FC<Props> = ({ 
-    place, profile, onClose, onVote, 
+    place, onClose, onVote, 
     onDeletePlace, isViewingTrash, onRestorePlace, onPermanentDelete 
 }) => {
   const { showToast } = useToast();
