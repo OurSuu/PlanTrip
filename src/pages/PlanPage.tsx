@@ -1,10 +1,11 @@
 // ต้อง import { supabase } from '../supabaseClient'; ก่อน
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react"; // <-- [สำคัญ] import useCallback
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import AddPlaceModal from "../components/AddPlaceModal";
 import PlaceCard from "../components/PlaceCard";
+import PlaceDetailModal from "../components/PlaceDetailModal"; // <-- [NEW!]
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import type { Place } from "../types/place";
@@ -45,39 +46,61 @@ const PlanPage: React.FC = () => {
   const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
   const [isViewingTrash, setIsViewingTrash] = useState(false);
 
+  // [NEW!] State สำหรับ Modal รายละเอียด
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+
+  // [NEW!] ฟังก์ชันเปิด/ปิด Modal
+  const handleOpenDetails = (id: string) => {
+    setSelectedPlaceId(id);
+  };
+  const handleCloseDetails = () => {
+    setSelectedPlaceId(null);
+  };
+
   const { fadeTop } = useScrollFades(120);
 
-  useEffect(() => {
-    let active = true;
-
-    async function fetchData() {
-      setLoading(true);
-      if (!active) return;
-
-      // [สำคัญ!] ดึงข้อมูลจาก Supabase พร้อม Join "addedBy"
-      // === เปลี่ยน places -> place (table name) ===
+  // [NEW: ใช้ useCallback เพื่อไม่เปลี่ยน reference]
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
       const { data, error } = await supabase
         .from('place')
-        .select(`
-          *,
-          addedBy:profiles!place_addedBy_fkey (id, username, avatar_url)
-        `)
-        .eq('is_deleted', false) // ดึงเฉพาะ Card ที่ไม่ได้อยู่ในถังขยะ
-        .order('created_at', { ascending: false }); // เรียงลำดับล่าสุดขึ้นก่อน
+        .select(`*, addedBy:profiles!place_addedBy_fkey (id, username, avatar_url)`)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching places:', error);
       } else {
-        // [สำคัญ] ต้องใช้ Type Assertion ให้ถูกต้อง
         setPlaces((data as Place[]) || []);
       }
+    } finally {
       setLoading(false);
     }
-
-    fetchData();
-
-    return () => { active = false; };
   }, []);
+
+  // โหลดข้อมูลรอบแรก
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // [NEW!] Subscribe realtime changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('places_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'place' },
+        (payload) => {
+          // console.log('Change received!', payload);
+          fetchData();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchData]);
 
   // ======= handleVote: ปรับเป็น async รับ id แล้ว toggle vote (push/pop ใน voters) พร้อม sync supabase =======
   const handleVote = async (id: string) => {
@@ -318,7 +341,6 @@ const PlanPage: React.FC = () => {
             >
               {places.length > 0 ? (
                 places.map((place, idx) => {
-                  // ลด animation เหลือเล็กๆ เท่านั้น
                   return (
                     <motion.div
                       key={place.id}
@@ -352,13 +374,10 @@ const PlanPage: React.FC = () => {
                       <PlaceCard
                         place={place}
                         profile={profile}
-                        onVote={handleVote}
-                        onSelect={handleSelectPlace}
+                        onOpenDetails={handleOpenDetails} // <-- [CHANGE!] เปลี่ยนเป็นส่งฟังก์ชันเปิด Modal
                         isSelected={selectedPlaceIds.includes(place.id)}
-                        onDeletePlace={handleDeletePlace}
                         isViewingTrash={isViewingTrash}
-                        onRestorePlace={handleRestorePlace}
-                        onPermanentDelete={handlePermanentDelete}
+                        // ลบ onVote, onDeletePlace, onRestorePlace, onPermanentDelete ออกจาก props นี้
                       />
                     </motion.div>
                   );
@@ -378,6 +397,23 @@ const PlanPage: React.FC = () => {
               )}
             </div>
           </motion.section>
+        </AnimatePresence>
+
+        {/* [NEW!] Modal รายละเอียด (ต้องอยู่ล่างสุด) */}
+        <AnimatePresence>
+          {selectedPlaceId && (
+            <PlaceDetailModal
+              place={places.find(p => p.id === selectedPlaceId) as Place} // หา Card ที่ถูกเลือก
+              profile={profile}
+              onClose={handleCloseDetails} // ส่งฟังก์ชันปิด Modal
+              onVote={handleVote} // ส่งฟังก์ชัน action ต่างๆ เข้าไป
+              onDeletePlace={handleDeletePlace}
+              onRestorePlace={handleRestorePlace}
+              onPermanentDelete={handlePermanentDelete}
+              isViewingTrash={isViewingTrash}
+              // ... (ส่ง Props อื่นๆ ที่จำเป็น)
+            />
+          )}
         </AnimatePresence>
 
         {/* Add modal */}

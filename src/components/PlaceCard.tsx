@@ -1,150 +1,30 @@
 // src/components/PlaceCard.tsx
-import React, { useState, useEffect } from 'react';
-import type { Place, Comment } from '../types/place';
+import React from 'react';
+import type { Place } from '../types/place';
 import type { Profile } from '../contexts/AuthContext';
-import { supabase } from '../supabaseClient'; 
-import { useToast } from '../contexts/ToastContext';
 
-// 2. [อัปเกรด!] Props
+// ปรับ Interface Props (ไม่มี logic/props ปุ่ม Vote/Trash/Comment อีก)
 interface Props {
   place: Place;
   profile: Profile;
-  onVote: (id: string) => void;
-  onSelect: (id: string) => void;
+  onOpenDetails: (id: string) => void; // <-- Prop เปิด Modal
   isSelected: boolean;
-  onDeletePlace: (id: string) => void;
   isViewingTrash: boolean;
-  onRestorePlace: (id: string) => void;
-  onPermanentDelete: (id: string) => void;
 }
 
 const PlaceCard: React.FC<Props> = ({
   place,
   profile,
-  onVote,
-  onSelect,
+  onOpenDetails,
   isSelected,
-  onDeletePlace,
   isViewingTrash,
-  onRestorePlace,
-  onPermanentDelete,
 }) => {
-  const { showToast } = useToast();
-
-  // --- Validate place object (fix: do not render if missing required fields) ---
-  // ถ้า place ไม่มี id, name หรือ กรณี query join แล้ว profiles/addBy เป็น null
+  // Validate place object
   if (!place || !place.id || !place.name) {
-    // ไม่แสดง Card ถ้าไม่มีข้อมูลที่จำเป็น
     return null;
   }
 
-  const voteCount = place.voters?.length || 0;
-  const hasVoted = place.voters?.includes(profile.id);
-
-  const voteButtonClass = hasVoted
-    ? "px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-    : "px-4 py-2 bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors";
-  const selectButtonClass = isSelected
-    ? "px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors"
-    : "px-4 py-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors";
-
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [loadingComments, setLoadingComments] = useState(false);
-
-  const [showRestoreModal, setShowRestoreModal] = useState(false);
-  const handleConfirmRestore = () => {
-    onRestorePlace(place.id);
-    setShowRestoreModal(false);
-  };
-
-  const fetchComments = async () => {
-    setLoadingComments(true);
-    const { data, error } = await supabase
-      .from('comments')
-      .select(`
-        *,
-        profiles ( id, username, avatar_url )
-      `)
-      .eq('place_id', place.id)
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching comments:', error);
-    } else {
-      setComments(data as Comment[]);
-    }
-    setLoadingComments(false);
-  };
-
-  const handleSendComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newComment.trim() === '') return;
-
-    const { error } = await supabase.from('comments').insert([
-      {
-        place_id: place.id,
-        author: profile.id,
-        text: newComment,
-      },
-    ]);
-
-    if (error) {
-      console.error('Error sending comment:', error);
-      showToast("🚨 ส่งคอมเมนต์ไม่สำเร็จ", 'error');
-    } else {
-      setNewComment('');
-      showToast("✅ ส่งคอมเมนต์สำเร็จ", 'success');
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (window.confirm('คุณแน่ใจนะว่าจะลบคอมเมนต์นี้?')) { 
-      const { error } = await supabase
-        .from('comments')
-        .delete()
-        .eq('id', commentId);
-
-      if (error) {
-        console.error('Error deleting comment:', error);
-        showToast("🚨 ลบคอมเมนต์ไม่สำเร็จ", 'error');
-      } else {
-        setComments(currentComments =>
-          currentComments.filter(comment => comment.id !== commentId)
-        );
-        showToast("🗑️ ลบคอมเมนต์สำเร็จ", 'success');
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!showComments) return;
-
-    fetchComments();
-
-    const channel = supabase
-      .channel(`comments-for-${place.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'comments',
-          filter: `place_id=eq.${place.id}`,
-        },
-        (_payload) => {
-          fetchComments();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [showComments, place.id]);
-
-  // --- ป้องกัน null/undefined owner profile หรือ addedBy ---
+  // ป้องกัน null/undefined owner profile หรือ addedBy
   let ownerName = '';
   let ownerAvatar = '';
   if (
@@ -164,8 +44,9 @@ const PlaceCard: React.FC<Props> = ({
 
   return (
     <div
+      onClick={() => onOpenDetails(place.id)} // เมื่อคลิก Card จะเปิด Modal
       className={`
-        relative border-2 rounded-xl shadow-xl overflow-hidden
+        relative border-2 rounded-xl shadow-xl overflow-hidden cursor-pointer
         bg-white/40 dark:bg-slate-900/70
         ${isSelected ? 'border-blue-500' : 'border-transparent'}
         transition-all
@@ -180,18 +61,6 @@ const PlaceCard: React.FC<Props> = ({
         boxShadow: '0 8px 32px 0 rgba(30,45,120,0.09), 0 2px 4px 0 rgba(0,0,0,0.03)',
       }}
     >
-      {/* ปุ่มลบสถานที่ (ซ่อนเมื่ออยู่ในโหมดถังขยะ) */}
-      {!isViewingTrash && (
-        <button
-          onClick={() => onDeletePlace(place.id)}
-          className="absolute top-2 right-2 z-10 p-1 bg-red-500/90 text-white rounded-full 
-                       hover:bg-red-700 w-6 h-6 flex items-center justify-center text-xs shadow-md shadow-red-300"
-          title="ลบสถานที่นี้"
-        >
-          🗑️
-        </button>
-      )}
-
       {/* ส่วนแสดงข้อมูล */}
       <img
         src={place.imageUrl || 'https://i.imgur.com/YtH4Y9Z.png'}
@@ -205,69 +74,16 @@ const PlaceCard: React.FC<Props> = ({
         <p className="font-semibold text-lg mt-2 text-indigo-700 dark:text-indigo-400 drop-shadow">
           {typeof place.cost === 'number' ? <>~{place.cost.toLocaleString()} บาท</> : null}
         </p>
+        {/* ลบปุ่ม Vote, ปุ่ม Select, ปุ่มลบ/ถังขยะแล้ว ไม่เหลือ action แสดงเพียงข้อมูล */}
         <div className="flex justify-between items-center mt-4">
-          {isViewingTrash ? (
-            <>
-              <button
-                onClick={() => setShowRestoreModal(true)}
-                className="px-4 py-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors shadow-md focus:ring-2 focus:ring-green-200"
-              >
-                ♻️ กู้คืน
-              </button>
-              <button
-                onClick={() => onPermanentDelete(place.id)}
-                className="px-4 py-2 bg-red-800 text-white rounded-full hover:bg-red-900 transition-colors shadow-md focus:ring-2 focus:ring-red-300"
-              >
-                ลบถาวร 💀
-              </button>
-              {showRestoreModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                  <div className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-lg max-w-xs w-full">
-                    <h4 className="text-lg font-bold mb-2">ยืนยันการกู้คืน</h4>
-                    <p className="mb-4 text-gray-600 dark:text-gray-300">คุณแน่ใจหรือไม่ว่าต้องการกู้คืนสถานที่นี้?</p>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setShowRestoreModal(false)}
-                        className="px-4 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600"
-                      >
-                        ยกเลิก
-                      </button>
-                      <button
-                        onClick={handleConfirmRestore}
-                        className="px-4 py-1 rounded bg-green-500 text-white hover:bg-green-600"
-                      >
-                        ยืนยัน
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              {/* [JSX Button Vote] */}
-              <button
-                onClick={() => onVote(place.id)}
-                className={`${voteButtonClass} shadow-md focus:ring-2 focus:ring-red-200`}
-              >
-                ❤️ {voteCount} โหวต
-              </button>
-              <button
-                onClick={() => onSelect(place.id)}
-                className={`${selectButtonClass} shadow-md focus:ring-2 focus:ring-blue-200`}
-              >
-                {isSelected ? '✅ เลือกแล้ว' : '🛒 เลือก'}
-              </button>
-            </>
-          )}
+          {/* ไม่มีปุ่มอื่นใดที่เกี่ยวกับ Vote/Select/Trash */}
         </div>
-
-        {/* แสดงชื่อและรูปผู้สร้าง Card แบบป้องกัน null */}
+        {/* ส่วนแสดงชื่อและรูปผู้สร้าง */}
         <div className="text-xs text-gray-400 mt-3 block text-right flex justify-end items-center gap-1.5">
           <span className="text-gray-400 truncate max-w-[88px]" title={ownerName}>
             โดย: {ownerName}
           </span>
-          <img 
+          <img
             src={ownerAvatar}
             alt={ownerName}
             className="w-6 h-6 rounded-full ml-1 object-cover ring-1 ring-gray-700 shadow-lg bg-white"
@@ -277,90 +93,7 @@ const PlaceCard: React.FC<Props> = ({
           />
         </div>
       </div>
-
-      {/* --- [อัปเกรด!] ส่วนแสดง Comment --- */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-slate-800/50 px-4 py-3 backdrop-blur-md">
-        <button
-          onClick={() => setShowComments(!showComments)}
-          className="text-sm font-medium text-blue-600 hover:underline"
-        >
-          {showComments ? 'ซ่อนคอมเมนต์' : `แสดงคอมเมนต์`}
-        </button>
-
-        {showComments && (
-          <div className="mt-4">
-            {loadingComments && <p className="text-xs text-gray-500">กำลังโหลด...</p>}
-            <div className="max-h-40 overflow-y-auto space-y-2 mb-4">
-              {comments.map(comment => {
-                const authorProfile = comment.profiles;
-                const isCommentOwner = comment.author === profile.id;
-
-                let commentAuthorName = '';
-                let commentAuthorAvatar = '';
-                if (authorProfile && typeof authorProfile === 'object' && authorProfile.username) {
-                  commentAuthorName = String(authorProfile.username);
-                  commentAuthorAvatar = authorProfile.avatar_url && typeof authorProfile.avatar_url === 'string'
-                    ? authorProfile.avatar_url
-                    : 'https://i.imgur.com/G5iE1G3.png';
-                } else {
-                  commentAuthorName = '...';
-                  commentAuthorAvatar = 'https://i.imgur.com/G5iE1G3.png';
-                }
-
-                return (
-                  <div
-                    key={comment.id}
-                    className="text-sm bg-white/70 dark:bg-slate-800/80 p-2 rounded
-                    flex justify-between items-center group shadow-sm
-                    backdrop-blur-md transition-all"
-                  >
-                    <div className="flex items-center">
-                      <img 
-                        src={commentAuthorAvatar}
-                        alt={commentAuthorName}
-                        className="w-6 h-6 rounded-full mr-2 object-cover ring-1 ring-gray-200 shadow bg-white"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = 'https://i.imgur.com/G5iE1G3.png';
-                        }}
-                      />
-                      <div className="truncate max-w-[120px]" title={commentAuthorName}>
-                        <strong>{commentAuthorName}:</strong> {comment.text}
-                      </div>
-                    </div>
-                    {isCommentOwner && (
-                      <button
-                        onClick={() => handleDeleteComment(comment.id)}
-                        className="text-red-500 hover:text-red-700 font-bold ml-2 px-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="ลบ"
-                      >
-                        X
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-              {comments.length === 0 && !loadingComments && (
-                <p className="text-xs text-gray-500">ยังไม่มีคอมเมนต์</p>
-              )}
-            </div>
-            <form onSubmit={handleSendComment} className="flex gap-2">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="แสดงความคิดเห็น..."
-                className="flex-1 p-2 border rounded-md text-sm bg-white/70 dark:bg-slate-800/50 backdrop-blur-md"
-              />
-              <button
-                type="submit"
-                className="px-3 py-2 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600 shadow"
-              >
-                ส่ง
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+      {/* ไม่มีส่วน comment */}
     </div>
   );
 };
