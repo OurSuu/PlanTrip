@@ -6,12 +6,10 @@ import Navbar from "../components/Navbar";
 import AddPlaceModal from "../components/AddPlaceModal";
 import PlaceCard from "../components/PlaceCard";
 import PlaceDetailModal from "../components/PlaceDetailModal"; // <-- [NEW!]
-// [CHANGE 1]: import useAuth as value
-import { useAuth } from "../contexts/AuthContext";
-// [CHANGE 2]: import Profile as type-only
-import type { Profile } from "../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext"; // Import useAuth (value only)
 import { useToast } from "../contexts/ToastContext";
 import type { Place } from "../types/place";
+import type { Profile } from "../contexts/AuthContext"; // Import Profile as type-only
 import GlassLayout from "../components/GlassLayout";
 
 // ======= THEME: รถไฟ สีเย็น ยามเย็น แต่งานเบากว่าเดิม =======
