@@ -9,12 +9,14 @@ import PlaceDetailModal from "../components/PlaceDetailModal";
 import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import type { Place } from "../types/place";
-import type { Profile } from "../contexts/AuthContext"; // ใช้ type เท่านั้น (ไม่ error)
 import GlassLayout from "../components/GlassLayout";
+import { supabase } from "../supabaseClient";
+
+// [CHANGE 2]: Define Profile types locally, derived from useAuth.
+type AuthProfile = ReturnType<typeof useAuth>['profile'];
+type AppProfile = NonNullable<AuthProfile>;
 
 const PLANPAGE_VIDEO_URL = "/videos/test2.mp4";
-
-import { supabase } from "../supabaseClient";
 
 function useScrollFades(threshold = 120) {
   const [fadeTop, setFadeTop] = useState(1);
