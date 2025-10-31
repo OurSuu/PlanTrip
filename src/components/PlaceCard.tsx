@@ -1,6 +1,7 @@
 // src/components/PlaceCard.tsx
 import React from 'react';
 import type { Place } from '../types/place';
+import type { Profile } from '../contexts/AuthContext'; // <--- [FINAL CHECK]
 
 // ปรับ Interface Props (ไม่มี logic/props ปุ่ม Vote/Trash/Comment อีก)
 interface Props {
