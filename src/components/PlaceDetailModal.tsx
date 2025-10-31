@@ -1,13 +1,11 @@
 // src/components/PlaceDetailModal.tsx
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence, Variants } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../supabaseClient';
 import { useToast } from '../contexts/ToastContext';
-import { useAuth, Profile } from '../contexts/AuthContext';
+import { useAuth, type Profile } from '../contexts/AuthContext';
 import type { Place, Comment } from '../types/place'; 
-
-// [คัดลอก Logic State, Comments, Vote, Delete/Restore จาก PlaceCard.tsx เดิมมาที่นี่]
 
 interface Props {
   place: Place;
@@ -21,7 +19,7 @@ interface Props {
   onPermanentDelete: (id: string) => void;
 }
 
-const modalBgVariants: Variants = { 
+const modalBgVariants = { 
   initial: { opacity: 0 },
   animate: { opacity: 1, transition: { duration: 0.22 } },
   exit: { opacity: 0, transition: { duration: 0.17 } },
@@ -32,9 +30,8 @@ const PlaceDetailModal: React.FC<Props> = ({
     onDeletePlace, isViewingTrash, onRestorePlace, onPermanentDelete 
 }) => {
   const { showToast } = useToast();
-  const { user } = useAuth(); // ต้องเรียกใช้ user เพื่อ Vote
+  const { user } = useAuth();
 
-  // [คัดลอก State, Logic Comment และ Logic การจัดการ Vote/Trash ทั้งหมดจาก PlaceCard.tsx เดิมมาที่นี่]
   const [showComments, setShowComments] = useState(true); // เปิด Comment เป็น Default
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState<string>('');
@@ -45,13 +42,18 @@ const PlaceDetailModal: React.FC<Props> = ({
     if (!place.id) return;
     const { data, error } = await supabase
       .from('comments')
-      .select('*')
+      .select(`
+        *,
+        author:profiles!comments_author_fkey (
+          id, username, avatar_url
+        )
+      `)
       .eq('place_id', place.id)
       .order('created_at', { ascending: true });
     if (!error && data) setComments(data as Comment[]);
   };
 
-  // ส่ง Comment
+  // ส่ง Comment (column names ต้องตรงกับ schema)
   const handleSendComment = async () => {
     if (!newComment.trim()) return;
     setIsSending(true);
@@ -60,9 +62,8 @@ const PlaceDetailModal: React.FC<Props> = ({
       .insert([
         {
           place_id: place.id,
-          user_id: user?.id,
-          content: newComment,
-          username: profile?.username || 'ผู้ใช้'
+          author: user?.id,
+          text: newComment
         }
       ]);
     setIsSending(false);
@@ -102,13 +103,13 @@ const PlaceDetailModal: React.FC<Props> = ({
     // eslint-disable-next-line
   }, [place.id]);
 
-  // Logic owner
-  const ownerName = place.owner_name || (profile?.id === place.owner_id ? profile.username : 'เจ้าของ');
-  const ownerAvatar = place.owner_avatar || (profile?.id === place.owner_id ? profile.avatar_url : undefined);
+  // Logic owner: ใช้ addedBy จาก Join (Place join profiles)
+  const ownerName = place.addedBy?.username || 'เจ้าของ';
+  const ownerAvatar = place.addedBy?.avatar_url;
 
   // Logic การหาว่าโหวตแล้วหรือไม่ (ใช้ user.id)
   const voteCount = place.voters?.length || 0;
-  const hasVoted = place.voters?.includes(user?.id);
+  const hasVoted = place.voters?.includes?.(user?.id ?? '');
 
   return (
     <AnimatePresence>
@@ -198,9 +199,9 @@ const PlaceDetailModal: React.FC<Props> = ({
                   ) : (
                     comments.map((comment) => (
                       <div key={comment.id} className="flex items-start gap-2 bg-gray-50 p-2 rounded-md group relative">
-                        <span className="font-medium text-gray-700 flex-shrink-0">{comment.username || "?"}</span>
-                        <span className="text-gray-800 text-sm">{comment.content}</span>
-                        {comment.user_id === user?.id && (
+                        <span className="font-medium text-gray-700 flex-shrink-0">{comment.author?.username || "?"}</span>
+                        <span className="text-gray-800 text-sm">{comment.text}</span>
+                        {comment.author?.id === user?.id && (
                           <button
                             type="button"
                             title="ลบ"
