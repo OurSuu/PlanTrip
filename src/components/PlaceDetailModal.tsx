@@ -10,17 +10,15 @@ import type { Place, Comment } from '../types/place';
 // [FINAL CHECK]: Import type Profile ให้ถูกต้อง
 import type { Profile } from '../contexts/AuthContext';
 
-// [FINAL CHECK]: ต้องใช้ชื่อ Prop ว่า 'profile' (required)
+// [FINAL FIX]: กำหนด Props ให้ไม่มี profile (ถ้าไม่ได้ใช้) และต้องมี onVote
 interface Props {
   place: Place;
   onClose: () => void;
-  // Prop Actions จาก PlanPage
-  onVote: (id: string) => void;
+  onVote: (id: string) => void; // <-- [FINAL FIX] ต้องมีบรรทัดนี้
   onDeletePlace: (id: string) => void;
   isViewingTrash: boolean;
   onRestorePlace: (id: string) => void;
   onPermanentDelete: (id: string) => void;
-  profile: Profile; // <--- [FINAL CHECK]: ต้องใช้ชื่อ Prop ว่า 'profile'
 }
 
 const modalBgVariants = {
@@ -37,7 +35,6 @@ const PlaceDetailModal: React.FC<Props> = ({
   isViewingTrash,
   onRestorePlace,
   onPermanentDelete,
-  profile, // [FINAL CHECK]: destructure profile prop
 }) => {
   const { showToast } = useToast();
   const { user } = useAuth();

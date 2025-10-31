@@ -1,21 +1,20 @@
 // src/components/PlaceCard.tsx
 import React from 'react';
 import type { Place } from '../types/place';
-import type { Profile } from '../contexts/AuthContext'; // <--- [FINAL CHECK]
 
-// ปรับ Interface Props และกำหนด profile: Profile [FINAL CHECK]
+// ลบการ import Profile เพราะไม่ได้ใช้
+
+// ปรับ Interface Props และลบ profile: Profile [FINAL FIX]
 interface Props {
   place: Place;
   onOpenDetails: (id: string) => void; // <-- Prop เปิด Modal
   isSelected: boolean;
-  profile: Profile; // <--- [FINAL CHECK]: ต้องใช้ชื่อ Prop ว่า 'profile'
 }
 
 const PlaceCard: React.FC<Props> = ({
   place,
   onOpenDetails,
   isSelected,
-  profile, // [FINAL CHECK] destructure prop
 }) => {
   // Validate place object
   if (!place || !place.id || !place.name) {
