@@ -6,7 +6,9 @@ import Navbar from "../components/Navbar";
 import AddPlaceModal from "../components/AddPlaceModal";
 import PlaceCard from "../components/PlaceCard";
 import PlaceDetailModal from "../components/PlaceDetailModal"; // <-- [NEW!]
-import { useAuth } from "../contexts/AuthContext";
+// เดิม: import { useAuth } from "../contexts/AuthContext";
+// แก้ไข: ต้องดึง Type Profile ออกมาด้วย
+import { useAuth, Profile } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import type { Place } from "../types/place";
 import GlassLayout from "../components/GlassLayout";
