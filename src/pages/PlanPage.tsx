@@ -43,7 +43,7 @@ const PlanPage: React.FC = () => {
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPlaceIds, setSelectedPlaceIds] = useState<string[]>([]);
+  // ลบ selectedPlaceIds และ setSelectedPlaceIds ออก
   const [isViewingTrash, setIsViewingTrash] = useState(false);
 
   // [NEW!] State สำหรับ Modal รายละเอียด
@@ -370,7 +370,7 @@ const PlanPage: React.FC = () => {
                         place={place}
                         profile={profile}
                         onOpenDetails={handleOpenDetails} // <-- [CHANGE!] เปลี่ยนเป็นส่งฟังก์ชันเปิด Modal
-                        isSelected={selectedPlaceIds.includes(place.id)}
+                        // ลบ isSelected ออก เพราะ selectedPlaceIds ถูกลบแล้ว
                         isViewingTrash={isViewingTrash}
                         // ลบ onVote, onDeletePlace, onRestorePlace, onPermanentDelete ออกจาก props นี้
                       />

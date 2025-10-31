@@ -7,6 +7,9 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { Place, Comment } from '../types/place'; 
 
+// [FIX]: เพิ่ม Profile type และเพิ่ม prop ที่ขาด (ใช้ Path ที่ถูกต้อง)
+import type { Profile } from '../contexts/AuthContext';
+
 interface Props {
   place: Place;
   onClose: () => void;
@@ -16,6 +19,7 @@ interface Props {
   isViewingTrash: boolean;
   onRestorePlace: (id: string) => void;
   onPermanentDelete: (id: string) => void;
+  profile?: Profile; // <--- [FIX]: เพิ่ม Prop ที่ขาดหายไป (optional เพื่อ compatibility)
 }
 
 const modalBgVariants = { 
@@ -43,7 +47,7 @@ const PlaceDetailModal: React.FC<Props> = ({
       .from('comments')
       .select(`
         *,
-        author:profiles!comments_author_fkey (
+        profiles:profiles!comments_author_fkey (
           id, username, avatar_url
         )
       `)
@@ -103,8 +107,10 @@ const PlaceDetailModal: React.FC<Props> = ({
   }, [place.id]);
 
   // Logic owner: ใช้ addedBy จาก Join (Place join profiles)
-  const ownerName = place.addedBy?.username || 'เจ้าของ';
-  const ownerAvatar = place.addedBy?.avatar_url;
+  // [FIX]: โปรไฟล์ place.addedBy อาจจะเป็น object หรือ string ให้ fallback
+  const ownerProfile = (typeof place.addedBy === 'object' && place.addedBy !== null) ? place.addedBy as { username?: string; avatar_url?: string } : undefined;
+  const ownerName = ownerProfile?.username || 'เจ้าของ';
+  const ownerAvatar = ownerProfile?.avatar_url;
 
   // Logic การหาว่าโหวตแล้วหรือไม่ (ใช้ user.id)
   const voteCount = place.voters?.length || 0;
@@ -196,22 +202,28 @@ const PlaceDetailModal: React.FC<Props> = ({
                   {comments.length === 0 ? (
                     <div className="text-gray-400 text-sm">ยังไม่มีความคิดเห็น</div>
                   ) : (
-                    comments.map((comment) => (
-                      <div key={comment.id} className="flex items-start gap-2 bg-gray-50 p-2 rounded-md group relative">
-                        <span className="font-medium text-gray-700 flex-shrink-0">{comment.author?.username || "?"}</span>
-                        <span className="text-gray-800 text-sm">{comment.text}</span>
-                        {comment.author?.id === user?.id && (
-                          <button
-                            type="button"
-                            title="ลบ"
-                            className="ml-auto text-xs text-red-400 opacity-0 group-hover:opacity-100 transition"
-                            onClick={() => handleDeleteComment(comment.id)}
-                          >
-                            ลบ
-                          </button>
-                        )}
-                      </div>
-                    ))
+                    comments.map((comment) => {
+                      // [FIX]: ใช้ comment.profiles จากการ Join และระบุ type ให้ถูกต้อง
+                      const authorProfile = comment.profiles as { username?: string, id: string, avatar_url?: string } | undefined;
+                      return (
+                        <div key={comment.id} className="flex items-start gap-2 bg-gray-50 p-2 rounded-md group relative">
+                          {/* [FIX]: ใช้ authorProfile ที่ Join มา */}
+                          <span className="font-medium text-gray-700 flex-shrink-0">{authorProfile?.username || 'ผู้ใช้'}</span>
+                          <span className="text-gray-800 text-sm">{comment.text}</span>
+                          {/* [FIX]: ใช้ comment.author สำหรับ check สิทธิ์ (author เป็น id) */}
+                          {comment.author === user?.id && (
+                            <button
+                              type="button"
+                              title="ลบ"
+                              className="ml-auto text-xs text-red-400 opacity-0 group-hover:opacity-100 transition"
+                              onClick={() => handleDeleteComment(comment.id)}
+                            >
+                              ลบ
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })
                   )}
                 </div>
                 <div className="flex gap-2 mt-2">
