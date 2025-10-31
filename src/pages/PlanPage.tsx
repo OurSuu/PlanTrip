@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import AddPlaceModal from "../components/AddPlaceModal";
 import PlaceCard from "../components/PlaceCard";
 import PlaceDetailModal from "../components/PlaceDetailModal";
-import { useAuth, type Profile } from "../contexts/AuthContext"; // <--- [FINAL FIX]: รวมการ Import Profile เข้ากับ useAuth
+import { useAuth } from "../contexts/AuthContext"; // FIX: Remove unused Profile import
 import { useToast } from "../contexts/ToastContext";
 import type { Place } from "../types/place";
 import GlassLayout from "../components/GlassLayout";

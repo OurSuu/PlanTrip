@@ -7,14 +7,13 @@ import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import type { Place, Comment } from '../types/place';
 
-// [FINAL CHECK]: Import type Profile ให้ถูกต้อง
-import type { Profile } from '../contexts/AuthContext';
+// Removed unused import Profile (fix bug: 'Profile' is declared but its value is never used)
 
-// [FINAL FIX]: กำหนด Props ให้ไม่มี profile (ถ้าไม่ได้ใช้) และต้องมี onVote
+// Props: removed profile (fix bug: Property 'profile' does not exist on type ...)
 interface Props {
   place: Place;
   onClose: () => void;
-  onVote: (id: string) => void; // <-- [FINAL FIX] ต้องมีบรรทัดนี้
+  onVote: (id: string) => void;
   onDeletePlace: (id: string) => void;
   isViewingTrash: boolean;
   onRestorePlace: (id: string) => void;
