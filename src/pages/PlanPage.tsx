@@ -1,22 +1,20 @@
 // ต้อง import { supabase } from '../supabaseClient'; ก่อน
 
-import React, { useEffect, useState, useCallback } from "react"; // <-- [สำคัญ] import useCallback
+import React, { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import AddPlaceModal from "../components/AddPlaceModal";
 import PlaceCard from "../components/PlaceCard";
-import PlaceDetailModal from "../components/PlaceDetailModal"; // <-- [NEW!]
-import { useAuth } from "../contexts/AuthContext"; // Import useAuth (value only)
+import PlaceDetailModal from "../components/PlaceDetailModal";
+import { useAuth } from "../contexts/AuthContext";
 import { useToast } from "../contexts/ToastContext";
 import type { Place } from "../types/place";
-import type { Profile } from "../contexts/AuthContext"; // Import Profile as type-only
+import type { Profile } from "../contexts/AuthContext"; // ใช้ type เท่านั้น (ไม่ error)
 import GlassLayout from "../components/GlassLayout";
 
-// ======= THEME: รถไฟ สีเย็น ยามเย็น แต่งานเบากว่าเดิม =======
-const PLANPAGE_VIDEO_URL = "/videos/test2.mp4"; // ควรมีวิดีโอบรรยากาศสถานีหรือท้องฟ้ายามเย็น
+const PLANPAGE_VIDEO_URL = "/videos/test2.mp4";
 
-// === เตรียม Supabase Client ===
-import { supabase } from "../supabaseClient"; // <-- ปรับ path ให้ตรงกับที่โปรเจคใช้
+import { supabase } from "../supabaseClient";
 
 function useScrollFades(threshold = 120) {
   const [fadeTop, setFadeTop] = useState(1);
@@ -32,25 +30,17 @@ function useScrollFades(threshold = 120) {
   return { fadeTop };
 }
 
-// ===== ลบรถไฟ/animationล่าง-ดวงอาทิตย์-ไฟสถานีออก =====
-
-// -- ลบ TrainSilhouetteSunset และ EveningSunAndStationLights ---
-
 const PlanPage: React.FC = () => {
   const { user, profile, loading: authLoading } = useAuth();
 
-  useToast(); // เรียก context แต่ไม่รับค่ากลับ หากต้องการให้ initialize
+  useToast();
 
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // ลบ selectedPlaceIds และ setSelectedPlaceIds ออก
   const [isViewingTrash, setIsViewingTrash] = useState(false);
-
-  // [NEW!] State สำหรับ Modal รายละเอียด
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
 
-  // [NEW!] ฟังก์ชันเปิด/ปิด Modal
   const handleOpenDetails = (id: string) => {
     setSelectedPlaceId(id);
   };
@@ -60,7 +50,6 @@ const PlanPage: React.FC = () => {
 
   const { fadeTop } = useScrollFades(120);
 
-  // [NEW: ใช้ useCallback เพื่อไม่เปลี่ยน reference]
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -80,12 +69,10 @@ const PlanPage: React.FC = () => {
     }
   }, []);
 
-  // โหลดข้อมูลรอบแรก
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // [NEW!] Subscribe realtime changes
   useEffect(() => {
     const channel = supabase
       .channel('places_changes')
@@ -102,7 +89,6 @@ const PlanPage: React.FC = () => {
     };
   }, [fetchData]);
 
-  // ======= handleVote: ปรับเป็น async รับ id แล้ว toggle vote (push/pop ใน voters) พร้อม sync supabase =======
   const handleVote = async (id: string) => {
     if (!user?.id) return;
 
@@ -111,11 +97,9 @@ const PlanPage: React.FC = () => {
 
     const hasVoted = placeToUpdate.voters?.includes(user.id);
     const newVoters = hasVoted
-      ? placeToUpdate.voters.filter(voterId => voterId !== user.id) // Unvote
-      : [...(placeToUpdate.voters || []), user.id]; // Vote
+      ? placeToUpdate.voters.filter(voterId => voterId !== user.id)
+      : [...(placeToUpdate.voters || []), user.id];
 
-    // อัปเดตใน Supabase
-    // === เปลี่ยน places -> place (table name) ===
     const { error } = await supabase
       .from('place')
       .update({ voters: newVoters })
@@ -126,7 +110,6 @@ const PlanPage: React.FC = () => {
       return;
     }
 
-    // อัปเดตใน State
     setPlaces(prevPlaces =>
       prevPlaces.map(p =>
         p.id === id ? { ...p, voters: newVoters } : p
@@ -134,22 +117,18 @@ const PlanPage: React.FC = () => {
     );
   };
 
-  // ลบ handleSelectPlace เพราะไม่ได้ใช้งาน
   const handleDeletePlace = (_id: string, ..._args: any[]) => {};
   const handleRestorePlace = (_id: string, ..._args: any[]) => {};
   const handlePermanentDelete = (_id: string, ..._args: any[]) => {};
 
-  // ======= handleAddPlace: รับข้อมูลใหม่ (ที่มี id แล้ว) ยัด profile และ voters field =======
-  const handleAddPlace = (newPlaceData: any) => { 
+  const handleAddPlace = (newPlaceData: any) => {
     if (newPlaceData && profile) {
-      // รวมข้อมูล Profile ของผู้ใช้ และเริ่มต้น voters ว่างเปล่า
-      const placeWithProfile: Place = { 
-        ...newPlaceData, 
-        addedBy: profile, // ใช้ Profile ของผู้ใช้ปัจจุบัน
-        voters: [], // เริ่มต้นไม่มีคนโหวต
-        // ... เพิ่ม field ที่ Place Card ต้องการ (สามารถเพิ่ม field อื่นๆ ตามที่ฟอร์มให้มา)
+      const placeWithProfile: Place = {
+        ...newPlaceData,
+        addedBy: profile,
+        voters: [],
       };
-      setPlaces(prev => [placeWithProfile, ...prev]); 
+      setPlaces(prev => [placeWithProfile, ...prev]);
     }
   };
 
@@ -197,19 +176,13 @@ const PlanPage: React.FC = () => {
     );
   }
 
-  // --- ปรับ grid ให้ responsive ยิ่งขึ้น & ลดขนาด min/max card ---
-  // (เดิม minmax 285px)
-  // ปรับ: base: 1 col (เต็ม), xs (min 340): 2 col, sm (min 500): 2 col, md (min 700): 3 col, lg (min 980): 4 col
-  // เเละจำกัด maxWidth ของ card
-
   const gridStyle: React.CSSProperties = {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", // งอได้เยอะขึ้นและเหลือขนาดไม่ใหญ่
-    gap: "1.5rem", // tailwind: gap-6/8
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: "1.5rem",
     perspective: 900,
   };
 
-  // ============================ UI =============================
   return (
     <GlassLayout videoUrl={PLANPAGE_VIDEO_URL}>
       <div className="relative w-full min-h-screen pt-16 pb-20 max-w-7xl mx-auto overflow-x-hidden text-[#2e2236] font-inter">
@@ -362,18 +335,16 @@ const PlanPage: React.FC = () => {
                         willChange: "transform,box-shadow,border-color",
                         borderRadius: 15,
                         border: "1.2px solid #fff6",
-                        maxWidth: 340,   // ** ปรับ card ให้ไม่เกิน 340px **
+                        maxWidth: 340,
                         width: "100%",
                         margin: "0 auto"
                       }}
                     >
                       <PlaceCard
                         place={place}
-                        profile={profile}
-                        onOpenDetails={handleOpenDetails} // <-- [CHANGE!] เปลี่ยนเป็นส่งฟังก์ชันเปิด Modal
-                        // ลบ isSelected ออก เพราะ selectedPlaceIds ถูกลบแล้ว
+                        profile={profile} // <-- [FINAL FIX]: เพิ่ม Prop profile ที่ขาดไป
+                        onOpenDetails={handleOpenDetails}
                         isViewingTrash={isViewingTrash}
-                        // ลบ onVote, onDeletePlace, onRestorePlace, onPermanentDelete ออกจาก props นี้
                       />
                     </motion.div>
                   );
@@ -399,15 +370,14 @@ const PlanPage: React.FC = () => {
         <AnimatePresence>
           {selectedPlaceId && (
             <PlaceDetailModal
-              place={places.find(p => p.id === selectedPlaceId) as Place} // หา Card ที่ถูกเลือก
+              place={places.find(p => p.id === selectedPlaceId) as Place}
               profile={profile}
-              onClose={handleCloseDetails} // ส่งฟังก์ชันปิด Modal
-              onVote={handleVote} // ส่งฟังก์ชัน action ต่างๆ เข้าไป
+              onClose={handleCloseDetails}
+              onVote={handleVote}
               onDeletePlace={handleDeletePlace}
               onRestorePlace={handleRestorePlace}
               onPermanentDelete={handlePermanentDelete}
               isViewingTrash={isViewingTrash}
-              // ... (ส่ง Props อื่นๆ ที่จำเป็น)
             />
           )}
         </AnimatePresence>
